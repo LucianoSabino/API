@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loja de venda</title>
+</head>
+<body>
+    <hr>
+    <h1>Lista de Games</h1>
+    <hr>
+    <ul id="games"></ul>
+    <hr>
+    <h4>Novos Jogos</h4>
+    <input type="text" name="title" id="title" placeholder="Titulo">
+    <input type="number" name="year" id="year" placeholder="Ano">
+    <input type="number" name="price" id="price" placeholder="Preço">
+    <button type="button" onclick="criargame()">Criar</button>
+    <ul id="resposta"></ul>
+    <hr>
+    <h4>Editar game</h4>
+    <input type="text" name="idEdit" id="idEdit" placeholder="ID" readonly>
+    <input type="text" name="titleEdit" id="titleEdit" placeholder="Titulo">
+    <input type="number" name="yearEdit" id="yearEdit" placeholder="Ano">
+    <input type="number" name="priceEdit" id="priceEdit" placeholder="Preço">
+    <button type="button" onclick="undateGame()">Editar</button>
+    <ul id="respostaEdit"></ul>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script> <!-- Biblioteca para o consumo da api -->
+    <script>
+        // Listando os jogos
+        axios.get("http://localhost:3030/games").then(requesicao => {
+            const games = requesicao.data; //Pegando as informações, vem em forma de arry
+            const list = document.getElementById("games"); //Pegando o elemento pelo id 
+            
+            
+
+            games.forEach(game => { // percorrendo o arry
+                const item = document.createElement("li"); // Criando uma li
+                const deleteBtn = document.createElement("button"); //Criando botão de deletar
+                const editBtn = document.createElement("button"); //Criando botão de editação
+
+                // Atribuindo valor nos atributos 
+                // É preciso quando quero guarda informações adiciomais, so colocar "data-(nome)"
+                item.setAttribute("data-id", game.id);
+                item.setAttribute("data-title", game.title);
+                item.setAttribute("data-year", game.year);
+                item.setAttribute("data-price", game.price);
+
+                item.innerHTML = game.title + " - " + "$"+game.price+" "; //Informações do li
+
+                // Botão de delete
+                deleteBtn.innerHTML = "Deletar";
+                deleteBtn.addEventListener("click",function(){deletaGame(item)});
+
+                // Botão de edição
+                editBtn.innerHTML = "Editar";
+                editBtn.addEventListener("click", () => edicao(item));
+
+                item.appendChild(deleteBtn); //Adiciomando botão  deletar no item
+                item.appendChild(editBtn); //Adiciomando o botão editar no item
+                list.appendChild(item); //adiciomando o item no na lista 
+            });
+        }).catch(error => {
+            console.log(error);
+        });
+
+        // Função para criar jogo
+        function criargame(){
+            const title = document.getElementById("title");
+            const gameyear = document.getElementById("year");
+            const price = document.getElementById("price");
+
+            if (title.value === "" || !gameyear.value || !price.value) {
+                alert("Informação incompleta");
+            }else{
+                 // Pegando os valores 
+                const game = {
+                    title: title.value,
+                    price: price.value,
+                    year: gameyear.value
+                }
+
+                // Enviando os dados
+                axios.post("http://localhost:3030/game",game).then(res => {
+                    if(res.status == 200){
+                        const list = document.getElementById("resposta");
+                        list.innerHTML = "Game cadastrado!";
+                        setTimeout(() => {
+                            list.innerHTML = " ";
+                            location.reload(); //Atualiza pagina
+                        }, 2000);
+                    }else{
+                        list.innerHTML = "Informações incorreta";
+                        setTimeout(() => {
+                            list.innerHTML = " ";
+                            // location.reload(); //Atualiza pagina
+                        }, 2000);
+                    }
+                }).catch(error => {
+                    console.log(error);
+                })
+            }
+
+           
+        }
+
+        // Função de deletar
+        function deletaGame(listItem) {
+            const id = listItem.getAttribute("data-id");
+            axios.delete("http://localhost:3030/game/"+id).then(response => {
+                alert("Game Sendo Deletaado...!");
+                location.reload(); //Atualiza pagina
+            }).catch(error => {
+                console.log(error)
+            });
+        }
+
+        // Fução de edicão
+        function undateGame(){
+            const idedit = document.getElementById("idEdit")
+            const title = document.getElementById("titleEdit");
+            const gameyear = document.getElementById("yearEdit");
+            const price = document.getElementById("priceEdit");
+
+            const id = idedit.value;//Pegando o id 
+            if (title.value === "" || !gameyear.value || !price.value) {
+                alert("Informação incompleta");
+            }else{
+                 // Pegando os valores 
+                const game = {
+                    title: title.value,
+                    price: price.value,
+                    year: gameyear.value
+                }
+
+                // Enviando os dados
+                axios.put("http://localhost:3030/game/"+id,game).then(res => {
+                    if(res.status == 200){
+                        const list = document.getElementById("respostaEdit");
+                        list.innerHTML = "Game Atualizado";
+                        setTimeout(() => {
+                            list.innerHTML = " ";
+                            location.reload(); //Atualiza pagina
+                        }, 2000);
+                    }else{
+                        list.innerHTML = "Informações incorreta";
+                        setTimeout(() => {
+                            list.innerHTML = " ";
+                            // location.reload(); //Atualiza pagina
+                        }, 2000);
+                    }
+                }).catch(error => {
+                    console.log(error);
+                })
+            }
+        }
+        // Pegando as informações de listagem de games para colocar no campo de edição
+        function edicao(listItem){
+            // Pegando as informação guardadas
+            const id = listItem.getAttribute("data-id");
+            const title = listItem.getAttribute("data-title");
+            const yearedit = listItem.getAttribute("data-year");
+            const price = listItem.getAttribute("data-price");
+
+            // Lincando os  input
+            const idEdit = document.getElementById("idEdit");
+            const titleEdit = document.getElementById("titleEdit");
+            const yearEdit = document.getElementById("yearEdit");
+            const priceEdit = document.getElementById("priceEdit");
+
+            // Atribuindo os valores
+            idEdit.value = id;
+            titleEdit.value = title;
+            yearEdit.value = yearedit;
+            priceEdit.value = price;
+
+            
+        }
+    </script>
+</body>
+</html>
