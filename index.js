@@ -1,15 +1,47 @@
 const express = require("express");
 const app = express();
-const boyParser = require("body-parser");
+const boyParser = require("body-parser"); //TODO saber oq faz
+const jwt = require("jsonwebtoken");
+
+const JWTSecret = "ljgjdjgjdjgldjlgjnnnvisfhif"; //Chave para o token
 
 const cors = require("cors") //Biblioteca para o consumo da api
 app.use(cors());
+
 
 // Inicianodo o boyParser 
 app.use(boyParser.urlencoded({extended: false}));
 // Convertendo para json
 app.use(boyParser.json());
 
+// Uma fução que executada antes de qualquer rota
+// sempre que tiver o nome auth, que dizer que essa rota é protegida por altenticação
+function auth(req, res, next){
+    const authToken = req.headers['authorization'];
+
+    // Verificação
+    if(authToken != undefined){
+        // Validação do token
+        const bearer = authToken.split(' '); //dividindo o token em um arry de string,que fica a primeira parte é tipo do token e a segunda é o tokrn
+        const token = bearer[1];
+
+        // Verificando se o token é valido e descritografa
+        jwt.verify(token, JWTSecret, (err, data) => {
+            if(err){
+                res.status(401);
+                res.json({err: "Token invalido!"})
+            }else{
+                // Essas variaveis posso assersar em qualquer lugar que eu chamo a função auth
+                req.token = token;
+                req.loggedUser = {id: data.id, email: data.email}
+                next();
+            }
+        });
+    }else{
+        res.status(401);
+        res.json({err: "Token invalido"})
+    }
+}
 
 var DB = {
     games: [
@@ -31,6 +63,20 @@ var DB = {
             year: 2012,
             price: 20
         },
+    ],
+    users: [
+        {
+            id: 2,
+            name: "Luciano",
+            email: "Luciano@gmail.com",
+            password: "123"
+        },
+        {
+            id: 30,
+            name: "Lucas",
+            email: "lucas@gmail.com",
+            password: "456"
+        }
     ]
 }
 
@@ -39,13 +85,13 @@ var DB = {
 // Criando as rotas
 
 // Listagem de todos so gemes quee esta cadastrado
-app.get("/games", (req, res) => {
+app.get("/games",auth, (req, res) => {
     res.statusCode = 200;
     res.json(DB.games);
 });
 
 // Logica de pega pelo id intem no banco dedos
-app.get("/game/:id", (req, res) => {
+app.get("/game/:id",auth, (req, res) => {
     // Validação de id
     // Venso se é um numero
     if(isNaN(req.params.id)){
@@ -69,7 +115,7 @@ app.get("/game/:id", (req, res) => {
 });
 
 // Cadrastrando dados
-app.post("/game", (req, res) => {
+app.post("/game",auth, (req, res) => {
     const validacao = {title, price, year} = req.body;
     // Validação
     if(isNaN(validacao.price) || isNaN(validacao.year)|| validacao.title == undefined){
@@ -89,7 +135,7 @@ app.post("/game", (req, res) => {
 });
 
 // Deletando dados
-app.delete("/game/:id", (req, res) => {
+app.delete("/game/:id",auth, (req, res) => {
     // Validação de id
     if(isNaN(req.params.id)){
         res.sendStatus(400);
@@ -113,7 +159,7 @@ app.delete("/game/:id", (req, res) => {
 });
 
 // Edição
-app.put("/game/:id", (req, res) => {
+app.put("/game/:id",auth, (req, res) => {
 
     if(isNaN(req.params.id)){
         res.sendStatus(400);
@@ -139,10 +185,50 @@ app.put("/game/:id", (req, res) => {
     } 
 });
 
+// Login
+app.post("/auth", (req, res) => {
+    const {email, password} = req.body;
+
+    // VAlidações
+    if(email != undefined){
+        const user = DB.users.find(u => u.email == email); //Fitrando o  email
+        console.log("Entrei")
+        if(user != undefined){
+            // Verificando a senha
+            if(user.password == password){
+                console.log("Entrei senha")
+                // Chamando o token
+                //Informações que vai dentro do token, passando a chave, e o tempo de expiração 
+                jwt.sign({id: user.id, email: user.email},JWTSecret,{expiresIn: "48h"}, (err, token) => {
+                    if(err){
+                        res.status(400);
+                        res.json({err: "Falha interna!"});
+                    }else{
+                        console.log("Entrei foi")
+                        res.status(200);
+                        res.json({token: token});
+                    }
+                });
+            }else{
+                res.status(401);
+                res.json({err: "Credenciais invalida"});
+            }
+
+        }else {
+            res.status(404);
+            res.json({err: "E-mail não encontraddo"})
+        }
+
+    }else {
+        res.status(400);
+        res.json({err: "E-mail envalido"})
+    }
+});
+
 
 
 // Iniciando o sevidor
 app.listen(3030, () => {
     console.log("API RODANDO");
     console.log("http://localhost:3030/");
-})
+});

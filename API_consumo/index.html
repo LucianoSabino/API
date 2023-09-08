@@ -6,6 +6,10 @@
     <title>Loja de venda</title>
 </head>
 <body>
+    <h3>Login</h3>
+    <input type="text" name="email" id="email" placeholder="luciano@gmail.com">
+    <input type="text" name="password" id="password" placeholder="*********">
+    <button onclick="login()">Entrar</button>
     <hr>
     <h1>Lista de Games</h1>
     <hr>
@@ -27,8 +31,39 @@
     <ul id="respostaEdit"></ul>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script> <!-- Biblioteca para o consumo da api -->
     <script>
+        
+
+        // Função de login
+        function login(){
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            axios.post("http://localhost:3030/auth",{
+                email,
+                password
+            }).then(res => {
+                const token = res.data.token;
+                // Salvando o token no navegador 
+                localStorage.setItem("token", token);
+                axiosConfig.headers.Authorization = "Bearer " + localStorage.getItem("token")
+                alert("LOGADO!");
+                location.reload(); //Atualiza pagina
+            }).catch(err => {
+                alert("Login incorreto!");
+                localStorage.removeItem("token")
+                location.reload(); //Atualiza pagina
+            })
+        }
+        // Configurando para JWT
+        // Criando um objeto de configuração para atorizar o tokenn
+        const axiosConfig = {
+            headers: {
+                Authorization: "Bearer " + localStorage.getItem("token")
+            }
+        }
+
         // Listando os jogos
-        axios.get("http://localhost:3030/games").then(requesicao => {
+        axios.get("http://localhost:3030/games",axiosConfig).then(requesicao => {
             const games = requesicao.data; //Pegando as informações, vem em forma de arry
             const list = document.getElementById("games"); //Pegando o elemento pelo id 
             
@@ -59,9 +94,11 @@
                 item.appendChild(deleteBtn); //Adiciomando botão  deletar no item
                 item.appendChild(editBtn); //Adiciomando o botão editar no item
                 list.appendChild(item); //adiciomando o item no na lista 
+                console.log("Erro merda");
             });
         }).catch(error => {
             console.log(error);
+            
         });
 
         // Função para criar jogo
