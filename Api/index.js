@@ -90,7 +90,7 @@ app.get("/games",auth, (req, res) => {
     res.json(DB.games);
 });
 
-// Logica de pega pelo id intem no banco dedos
+// Logica de pega pelo id item no banco dedos
 app.get("/game/:id",auth, (req, res) => {
     // Validação de id
     // Venso se é um numero
